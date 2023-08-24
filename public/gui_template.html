@@ -1,7 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
+    {% if isRunning %}
+    <meta charset="UTF-8" http-equiv="refresh" content="5">
+    {% else %}
     <meta charset="UTF-8">
+    {% end %}
     <title>ScalpNotifier</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -11,63 +15,73 @@
     <style type="text/css">
       @font-face {
         font-family: 'Palanquin';
-        src: url("https://github.com/VanillaandCream/Palanquin/raw/master/Palanquin/Palanquin/Palanquin-Regular.ttf");
+        src: url("https://github.com/VanillaandCream/Palanquin/raw/master/Palanquin/Palanquin/Palanquin-Bold.ttf");
       }
 
       body {
-        background-color: #fcf8f5;
+        /*background-color: #fcf8f5;*/
+        background-color: #d5dee7;
         font-family: 'Mulish', sans-serif !important;
+        color: #91bad6 !important;
+        font-size: 14px;
       }
 
       .banner {
         /*box-shadow: 2px 2px #662d15;*/
+        font-weight: bolder;
+        color: #91bad6 !important;
         opacity: 0.9;
         font-size: 20px !important;
         background: #a770ef;
         border-bottom-left-radius: 0 !important;
         border-top-left-radius: 0 !important;
-        background: -webkit-linear-gradient(to right, #cc5500, #99431f, #662d15);
-        background: linear-gradient(to right, #cc5500, #99431f, #662d15);
+        background: -webkit-linear-gradient(to right, #005e6a, #004b55, #00262a);
+        background: linear-gradient(to right, #005e6a, #004b55, #00262a);
       }
 
       /* btns and forms */
       .btn-orange {
         opacity: 0.8;
-        background-color: #cc5500;
-        box-shadow: 2px 2px #99431f;
+        background-color: #004b55;
+        color: #91bad6 !important;
+        box-shadow: 2px 2px #005e6a;
       }
 
       .form-control {
         opacity: 0.7;
+        border-color: transparent;
         /*box-shadow: 1px 1px #cc5500;*/
+        background-color: #00717f;
+        color: #91bad6;
       }
 
       .form-check-label,
       .form-label {
         opacity: 0.6;
-        /*text-shadow: 0.5px 0.5px #662d15;*/
+        color: #00262a;
+        font-weight: bolder;
       }
-
       /* Range slider */
+
       input[type=range]::-webkit-slider-thumb {
-        background: #cc5500;
+        background: #004b55;
         opacity: 0.8;
       }
 
       input[type=range]::-moz-range-thumb {
-        background: #cc5500;
+        background: #004b55;
         opacity: 0.8;
       }
 
       input[type=range]::-ms-thumb {
-        background: #cc5500;
+        background: #004b55;
         opacity: 0.8;
       }
 
       /* Toggle switch */
       .form-check-input:checked {
-        background-color: #cc5500;
-        border-color: #99431f;
+        background-color: #004b55;
+        border-color: #005e6a;
         opacity: 0.8;
       }
     </style>
@@ -98,13 +112,13 @@
         <div class="mb-3">
           <input type="text" class="form-control" id="pwd" placeholder="Location list" name="locationList" value="{{ values['locationList'] }}">
         </div>
-        <div class="btn-group">
+         <div class="btn-group" style="font-size: 14px">
           <div class="form-check form-switch col-sm-5">
             <input class="form-check-input" type="checkbox" value="" id="beautifiedEmailMode" name="beautifiedEmailMode"
                    {% if (values['beautifiedEmailMode'] == 'True') %} {{ "checked" }} {% end %}>
             <label class="form-check-label" for="beautifiedEmailMode">Beautified emails</label>
           </div>
-          <div class="form-check form-switch col-sm-4">
+          <div class="form-check form-switch col-sm-5">
             <input class="form-check-input" type="checkbox" id="freeItemMode" name="freeItemMode"
                    {% if (values['freeItemMode'] == 'True') %} {{ "checked" }} {% end %}>
             <label class="form-check-label" for="freeItemMode">Free items only</label>
@@ -126,10 +140,33 @@
             <label for="sendInterval" class="form-label">1 day</label>
           </div>
         </div>
+
         <div class="d-grid mt-2">
-          <button class="btn text-white btn-orange btn-outline-black btn-block" type="submit" id="send">Submit</button>
+          <button class="btn text-white btn-orange btn-outline-black btn-block" type="submit" id="send">
+            {% if not isRunning %} Run {% else %} Kill Process {% end %}
+          </button>
         </div>
+        <div class="container rounded border-dark mt-3" style="margin:auto;">
+    </div>
       </form>
+      <textarea class="mt-3 form-control" rows="14" id="logTextArea" name="logTextArea">
+      </textarea>
     </div>
   </body>
+  <script language="javascript">
+
+    function loadLog(logValue) {
+        logTa = document.getElementById("logTextArea")
+        logTa.value = logValue;
+        scrollLogToBottom()
+    }
+
+    function scrollLogToBottom() {
+        logTa = document.getElementById("logTextArea")
+        logTa.scrollTop = logTa.scrollHeight;
+    }
+
+    loadLog(`{{ escape(log) }}`)
+
+</script>
 </html>
