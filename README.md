@@ -3,4 +3,4 @@ A Facebook scalping program
 
 Gui            |  Running
 :-------------------------:|:-------------------------:
-![](https://...Dark.png)  |  ![](https://...Ocean.png)
+![](https://github.com/0-Eclipse-0/ScalpNotifier/blob/main/images/setup.png)  |  ![](https://github.com/0-Eclipse-0/ScalpNotifier/blob/main/images/running.png)
