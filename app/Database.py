@@ -19,8 +19,7 @@ class Database:
         lock.release()
 
     def createTable(self, item): # Create item table if it doesn't exist
-        tableString = "CREATE TABLE IF NOT EXISTS " +  item + " (listing TEXT, location TEXT, price TEXT, link TEXT);"
-
+        tableString = "CREATE TABLE IF NOT EXISTS " + item + " (listing TEXT, location TEXT, price TEXT, link TEXT);"
         lock.acquire(True)
         self.cursor.execute(tableString)
         lock.release()
@@ -42,4 +41,3 @@ class Database:
         lock.release()
 
         return len(fetchResult) == 0  # true if not found
-

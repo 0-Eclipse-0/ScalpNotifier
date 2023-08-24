@@ -8,8 +8,31 @@ import tornado.web
 from tornado import concurrent
 from Log import Log
 from GUI import startGUI
+from Notification import Notification
 
 executor = concurrent.futures.ThreadPoolExecutor(8)
+
+def cleanInput(arguments):
+    isValid = True
+    for boolean in ["beautifiedEmailMode", "freeItemMode", "falsePricePrevention"]:
+        if boolean not in arguments.keys():
+            arguments[boolean] = False
+        else:
+            arguments[boolean] = True
+
+    # Convert bytes to str
+    for arg in arguments.keys():
+        if isinstance(arguments[arg], list):
+            arguments[arg] = f'{arguments[arg][0].decode()}'
+
+    # Validate email login
+    try:
+        login = Notification(arguments['sendingEmail'], arguments['targetEmail'], arguments['sendingEmailPass'])
+        login.testLogin()
+    except:
+        isValid = False
+
+    return arguments, isValid
 
 # Read config to update params
 class Config():
@@ -24,36 +47,11 @@ class Config():
             self.config.set('DEFAULT', item, str(data[item]))
 
         # Write to config file
-        with open('../config.ini', 'w') as f:
+        with open('config.ini', 'w') as f:
             self.config.write(f)
-
 
     def read(self):
         return dict(self.config.items('DEFAULT')) # tuple -> dict
-
-class ConsoleHandler(tornado.web.RequestHandler):
-    def initialize(self, process):
-        self.process = process
-
-    def get(self):
-        # Determine if console has content and output it on refresh
-        self.render('../public/console_template.html', log=Log.output())
-
-    def post(self):
-        # Terminate runnning instance if it exists
-        if self.process['isRunning'] == True:
-                # Reset values
-                self.process['curProcess'].terminate()
-                self.process['curProcess'] = None
-                self.process['scalper'] = None
-                self.process['isRunning'] = False
-
-                Log.clear()
-
-                print("Process terminated")
-
-        self.redirect('/')
-
 
 class ControlPanelHandler(tornado.web.RequestHandler):
     def initialize(self, process):
@@ -62,42 +60,49 @@ class ControlPanelHandler(tornado.web.RequestHandler):
 
     def get(self):
         # Fill page with predefined config
-        self.render('../public/gui_template.html', values=self.config.read())
+        self.render('../public/gui_template.html',
+                    values=self.config.read(),
+                    log=Log.output(),
+                    isRunning=self.process['isRunning'])
 
     def post(self):
-        # Include disables switches in arguments and convert to booleans
-        for boolean in ["beautifiedEmailMode", "freeItemMode", "falsePricePrevention"]:
-            if boolean not in self.request.arguments.keys():
-                self.request.arguments[boolean] = False
+        if self.process['isRunning'] == True:
+                # Reset values
+                if self.process['curProcess'] != None:
+                    self.process['curProcess'].terminate()
+
+                self.process['curProcess'] = None
+                self.process['scalper'] = None
+                self.process['isRunning'] = False
+
+                Log.clear()
+
+        else:
+            # Include disables switches in arguments and convert to booleans
+            arguments, validity = cleanInput(self.request.arguments)
+
+            if (validity):
+                self.config.modify(arguments)
+                configArgs = self.config.read()
+                self.process["scalper"] = Scalpnotifier(configArgs['locationList'], # Creat new scalper object based on args
+                        configArgs['itemList'],
+                        configArgs['sendInterval'],
+                        configArgs['freeItemMode'],
+                        configArgs['beautifiedEmailMode'],
+                        configArgs['targetEmail'],
+                        configArgs['sendingEmail'],
+                        configArgs['sendingEmailPass'])
+
+            # Send scalper to background and go to console page
+                self.process['curProcess'] = Process(target=self.process['scalper'].run)
+                self.process['curProcess'].start()
+
             else:
-                self.request.arguments[boolean] = True
+                Log.write("Email login failed. Please kill process...")
 
-        # Convert bytes to str
-        for arg in self.request.arguments.keys():
-            if isinstance(self.request.arguments[arg], list):
-                self.request.arguments[arg] = f'{self.request.arguments[arg][0].decode()}'
+            self.process['isRunning'] = True
 
-        self.config.modify(self.request.arguments)
-        configArgs = self.config.read()
-        self.process["scalper"] = Scalpnotifier(configArgs['locationList'], # Creat new scalper object based on args
-                      configArgs['itemList'],
-                      configArgs['sendInterval'],
-                      configArgs['freeItemMode'],
-                      configArgs['falsePricePrevention'],
-                      configArgs['beautifiedEmailMode'],
-                      configArgs['targetEmail'],
-                      configArgs['sendingEmail'],
-                      configArgs['sendingEmailPass'])
-
-        # Send scalper to background and go to console page
-        # executor.submit(self.scalper.run())
-        self.process['curProcess'] = Process(target=self.process['scalper'].run)
-        self.process['curProcess'].start()
-        self.process['isRunning'] = True
-        print("Running again")
-
-        self.redirect('/console')
-
+        self.redirect('/')
 
 def makeApp():
     # Struct-like dict for handling global objects and variables
@@ -108,9 +113,9 @@ def makeApp():
     }
 
     return tornado.web.Application([
-        (r"/", ControlPanelHandler, {'process': process}),
-        (r"/console", ConsoleHandler, {'process': process})
+        (r"/", ControlPanelHandler, {'process': process})
     ])
+
 if __name__ == '__main__':
     try:
         startGUI()

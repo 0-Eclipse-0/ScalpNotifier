@@ -4,9 +4,9 @@ import os
 LOGFILE = os.path.join(os.path.dirname(__file__), '../temp.log')
 
 class Log:
-    def write(data):
+    def write(data, newline = True):
         with open(LOGFILE, 'a') as log:
-            log.write(data + '\n')
+            log.write(data + '\n' if (newline ==  True) else '')
 
     def output():
         if os.path.exists(LOGFILE):

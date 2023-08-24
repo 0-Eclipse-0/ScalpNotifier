@@ -4,16 +4,21 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
 class Notification():
-    def __init__(self, senderAddress, targetAddress):
+    def __init__(self, senderAddress, targetAddress, sendingEmailPass):
         # Obtain email information
         self.message = MIMEMultipart("alternative")
         self.message["Subject"] = time.strftime("ScalpNotifier: New items found!")
         self.message["From"] = senderAddress
         self.message["To"] = targetAddress
 
-        self.emailPass = "qphyvapnzduziexh" # Import
+        self.emailPass = sendingEmailPass # Import
         self.senderAddress = senderAddress
         self.targetAddress = targetAddress
+
+    def testLogin(self): # Expected to return exception on failure
+        context = ssl.create_default_context()
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as server:
+            server.login(self.senderAddress, self.emailPass)
 
     def send(self):
         context = ssl.create_default_context()
@@ -62,13 +67,14 @@ class Notification():
                 </head>
                 <style type="text/css">
                     body {
-                        background: #f4f4f4;
+                        background: #d5dee7;
                     }
                 
                     .banner {
+                        color: #91bad6;
                         background: #a770ef;
-                        background: -webkit-linear-gradient(to right, #cc5500, #99431f, #662d15);
-                        background: linear-gradient(to right, #cc5500, #99431f, #662d15);
+                        background: -webkit-linear-gradient(to right, #005e6a, #004b55, #00262a);
+                        background: linear-gradient(to right, #005e6a, #004b55, #00262a);
                     }
                 </style>
                 <body>

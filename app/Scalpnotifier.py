@@ -5,39 +5,47 @@ from Database import Database
 from Log import Log
 from time import sleep
 import threading
-
+import hashlib
 
 class Scalpnotifier:
-    def __init__(self, locations, items, sleepTime, freeOnlyMode, beautifiedEmailMode, falsePricePrevention, targetEmail, senderEmail, senderEmailPass):
+    def __init__(self,
+                 locations,
+                 items,
+                 sleepTime,
+                 freeOnlyMode,
+                 beautifiedEmailMode,
+                 targetEmail,
+                 senderEmail,
+                 senderEmailPass):
         self.targetEmail = targetEmail
         self.senderEmail = senderEmail
         self.senderEmailPass = senderEmailPass
         self.locations = locations.split(', ')
         self.items = items.split(', ')
         self.freeOnlyMode = True if (freeOnlyMode) == "True" else False
-        print(freeOnlyMode)
-
         self.beautifiedEmailMode = True if (beautifiedEmailMode) == "True" else False
-        self.falsePricePrevention = True if (falsePricePrevention) == "True" else False
         self.sleepTime = int(sleepTime)
         self.itemClass = "x3ct3a4"
 
     def startProcess(self, item, location, db, newItems):
-        db.createTable(item)
+        # Hash to avoid sql errors
+        itemHash = "hash_" + str(hashlib.sha512(item.encode()).hexdigest())
+
+        db.createTable(itemHash)
+
         # Build url based on current location and item
         targetUrl = "https://www.facebook.com/marketplace/" \
                     + location + "/search?query=" \
                     + "%20".join(item.split()) + ("&minPrice=0&maxPrice=0" if self.freeOnlyMode else '')
-        print(targetUrl)
 
         browser = Scalper(targetUrl, self.itemClass)
         browser.getSource()
 
         # Parse free items from sourced list
         for i in self.parseItems(browser.getItems()):
-            if db.entryExists(item, i[1], i[2], i[0], i[3]):  # Add to database if not found
+            if db.entryExists(itemHash, i[1], i[2], i[0], i[3]):  # Add to database if not found
                 newItems.append(i)
-                db.insertItem(item, i[1], i[2], i[0], i[3])
+                db.insertItem(itemHash, i[1], i[2], i[0], i[3])
                 db.database.commit()
         browser.end()
 
@@ -77,7 +85,7 @@ class Scalpnotifier:
 
     def run(self):
         db = Database()
-        notification = Notification(self.senderEmail, self.targetEmail)
+        notification = Notification(self.senderEmail, self.targetEmail, self.senderEmailPass)
 
         try:
             while True:
@@ -90,16 +98,18 @@ class Scalpnotifier:
                     Log.write("All new items:")
 
                     for i in items:
-                        Log.write("\t\t• " + ", ".join(i))
+                        Log.write("\t\t• " + ", ".join(i[:(len(i)) - 2]))
 
                     # Send email
-                    # notification.betterEmail(items) if self.beautifiedEmailMode else notification.email(items)
+                    notification.betterEmail(items) if self.beautifiedEmailMode else notification.email(items)
 
                 # Wait Timer
-                print(Log.output())
-                sleep(self.sleepTime)
+                i = 0
+                while i != self.sleepTime:
+                    Log.write(str("\rChecking again in %.2f minutes..." % ((self.sleepTime - i) / 60)))
+                    sleep(self.sleepTime / 10)
+                    i += self.sleepTime / 10
 
 
         except KeyboardInterrupt:
-            print("Exiting...")
             db.database.close()

@@ -12,7 +12,7 @@ class Scalper:
 
         self.itemClass = itemClass
         self.target = url
-        self.driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager(version='114.0.5735.90').install()), options=chromeArgs)
+        self.driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=chromeArgs)
 
         try:
             self.driver.get(url)
@@ -56,6 +56,9 @@ class Scalper:
             items.append(innerText)
 
         return items
+
+    def falsePrice(self, targetLink):
+        pass
 
     # Close browser
     def end(self):
